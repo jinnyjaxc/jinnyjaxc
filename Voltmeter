@@ -1,0 +1,110 @@
+/* Comment this out to disable prints and save space */
+#define BLYNK_TEMPLATE_ID "TMPL6VGAw7_2-"
+#define BLYNK_TEMPLATE_NAME "Voltage"
+#define BLYNK_AUTH_TOKEN "QWQg_JhJcTzo8gOCifGF3EDIgpzH9PfH"
+
+#define BLYNK_PRINT Serial
+
+#include <Wire.h>
+#include <SPI.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <TridentTD_LineNotify.h>
+
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "jinny.jax";
+char pass[] = "nnnnnnnn";
+
+#define SSID        "jinny.jax"
+#define PASSWORD    "nnnnnnnn"
+#define LINE_TOKEN  "sTdiF8lVTjEqXlANKvrujgpPXxrvVefOWYXkNMEb1bI"
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+  #define Analog_In 15      // อิงจากขา ที่ต่อจากขา esp32
+  float vin = 0;
+  float vout = 0;
+  float R1 = 100000.0;
+  float R2 = 10000.0;
+  int value;
+
+  // ปรับค่าตรงนี้ตามค่าที่คุณได้จากการทดสอบเซนเซอร์ Voltage Sensor
+  float voltageDivider = 5.0;  // หารค่าแรงดันเพื่อหาค่าแรงดันที่ถูกต้อง
+
+void setup()
+{
+  // Debug console
+  Serial.begin(9600);
+
+  Blynk.begin(auth, ssid, pass);
+
+  Serial.begin(115200); Serial.println();
+  Serial.println(LINE.getVersion());
+
+  WiFi.begin(SSID, PASSWORD);
+  Serial.printf("WiFi connecting to %s\n",  SSID);
+  while(WiFi.status() != WL_CONNECTED) { Serial.print("."); delay(400); }
+  Serial.printf("\nWiFi connected\nIP : ");
+  Serial.println(WiFi.localIP());  
+
+  // กำหนด Line Token
+  LINE.setToken(LINE_TOKEN);
+  LINE.notify("beem na rak");
+
+    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+//  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  // Display 1
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Love beem");
+  display.display();
+
+
+    // Display 2  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println(vin);
+  display.display(); 
+
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+}
+
+void loop()
+{
+  Blynk.run();
+  float value = analogRead(Analog_In);
+  float vout = (value * 5.000) / 4095;
+  float vin = vout / (R2/(R1+R2));
+     if (vin < 0.05)
+      {
+        vin = 0.0;
+      }
+
+  // Display 2  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println(vin);
+  display.display();
+
+
+
+  delay(100);
+}
