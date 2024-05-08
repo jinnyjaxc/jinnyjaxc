@@ -1,0 +1,150 @@
+#include <ESP32Servo.h>
+#include <TridentTD_LineNotify.h>
+
+#define SSID "J"                 // Replace with your WiFi SSID
+#define PASSWORD "0986718097"                        // Replace with your WiFi password
+#define LINE_TOKEN "TvS2nkdoPMAMBo1UhsnHscQ5Kx19woyyoMU13OP9sG2"      // Replace with your Line Notify token
+#define buzzer 21
+
+// เปิดปิด
+#define trigPin1 32 // กำหนดขา Trig ของ Ultrasonic Sensor
+#define echoPin1 33 // กำหนดขา Echo ของ Ultrasonic Sensor
+#define sensorPin 34 // กำหนดขาของ Proximity Sensor
+
+//ขยะเต็ม
+#define trigPin2 15 // กำหนดขา Trig ของ Ultrasonic Sensor
+#define echoPin2 16 // กำหนดขา Echo ของ Ultrasonic Sensor
+#define trigPin3 18 // กำหนดขา Trig ของ Ultrasonic Sensor
+#define echoPin3 19 // กำหนดขา Echo ของ Ultrasonic Sensor
+
+long Ultra1, Ultra2, Ultra3;
+long duration, distance; // ประกาศตัวแปร duration และ distance เพื่อใช้เก็บค่าระยะทาง
+
+Servo myservo;  // สร้างอ็อบเจ็กต์ของ Servo
+Servo myservo1; // ฝั่งโลหะ
+Servo myservo2; // ฝั่งพลาสติก
+
+void setup() {
+  Serial.begin(115200); // เริ่มการสื่อสารผ่านทาง Serial Monitor
+  
+  // Connect to WiFi
+  WiFi.begin(SSID, PASSWORD);
+  Serial.print("Connecting to WiFi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+
+  // Set Line Notify token
+  LINE.setToken(LINE_TOKEN);
+
+  // Send a test message
+  LINE.notify("Hello from ESP32 on Wokwi!");
+  
+  pinMode(buzzer, OUTPUT);
+  pinMode(trigPin1, OUTPUT); // ตั้งโหมดขา Trig เป็น OUTPUT
+  pinMode(echoPin1, INPUT); // ตั้งโหมดขา Echo เป็น INPUT
+  pinMode(trigPin2, OUTPUT); // ตั้งโหมดขา Trig เป็น OUTPUT
+  pinMode(echoPin2, INPUT); // ตั้งโหมดขา Echo เป็น INPUT
+  pinMode(sensorPin, INPUT); // กำหนดโหมดของขา Proximity Sensor เป็น INPUT
+  myservo.attach(26);  // กำหนดขาที่ต่อ Servo Motor
+  myservo1.attach(27);
+  myservo1.write(180);
+  myservo2.attach(12);
+  myservo2.write(180);
+
+}
+
+void loop() {
+  int proximityValue = digitalRead(sensorPin); // อ่านค่าจาก Proximity Sensor
+  Ultrasonic(trigPin1, echoPin1);
+  Ultra1 = distance;
+  // เลือกมุมที่ต้องการให้ Servo Motor หมุนไป
+  if (Ultra1 <= 3) {
+  myservo.write(180);    // หมุนไปที่ 0 องศา
+  Serial.println("Open");
+
+  delay(500);         // รอเป็นเวลา 1 วินาที
+  }
+  else {
+  myservo.write(0);   // หมุนไปที่ 90 องศา
+  Serial.println("Close");
+  delay(500);         // รอเป็นเวลา 1 วินาที
+  }
+
+  Ultrasonic(trigPin2, echoPin2);
+  Ultra2 = distance;
+  if (Ultra2 <= 1) {
+    //tone(buzzer, 300, 1000); 
+    Serial.println("Trush1 was full!!");
+    LINE.notify("ขยะเต็มแล้ว1!!");
+    delay(1000);
+  }
+
+  Ultrasonic(trigPin3, echoPin3);
+  Ultra3 = distance;
+  if (Ultra3 <= 1) {
+    //tone(buzzer, 300, 1000); 
+    Serial.println("Trush2 was full!!");
+    LINE.notify("ขยะเต็มแล้ว2!!");
+    delay(1000);
+  }
+
+  if (proximityValue == 0) {
+    myservo2.write(0);
+    delay(3000);
+    myservo2.write(180);
+    delay(1000);
+    myservo1.write(180);
+    delay(1000);
+    Serial.println("Object detected!"); // แสดงข้อความ "Object detected!" หากมีวัตถุอยู่ใกล้เซนเซอร์
+    //delay(500);
+  } else {
+    myservo1.write(0);
+    delay(3000);
+    myservo1.write(180);
+    delay(1000);
+    myservo2.write(180);
+    delay(1000);
+    Serial.println("No object detected"); // แสดงข้อความ "No object detected" หากไม่มีวัตถุอยู่ใกล้เซนเซอร์
+    //delay(500);
+  }
+
+  // if (proximityValue == 0) {
+  //   myservo1.write(0);
+  //   delay(1000);
+  //   myservo2.write(0);
+  //   delay(1000);
+  //   myservo1.write(0);
+  //   delay(1000);
+  //   Serial.println("No object detected"); // แสดงข้อความ "No object detected" หากไม่มีวัตถุอยู่ใกล้เซนเซอร์
+  //   myservo2.write(0);
+  //   //delay(500);
+  // } else {
+  //   myservo2.write(0);
+  //   delay(1000);
+  //   myservo2.write(0);
+  //   delay(1000);
+  //   Serial.println("Object detected!"); // แสดงข้อความ "Object detected!" หากมีวัตถุอยู่ใกล้เซนเซอร์
+  //   //delay(500);
+    
+  // }
+}
+void Ultrasonic(int trigPin, int echoPin) {
+
+  digitalWrite(trigPin, LOW); // ส่งสัญญาณ LOW ไปที่ Trig เพื่อเริ่มต้นการส่งสัญญาณเสียง
+  delayMicroseconds(2); // รอเวลาเพื่อให้ Ultrasonic Sensor พร้อมทำงาน
+
+  digitalWrite(trigPin, HIGH); // ส่งสัญญาณ HIGH ไปที่ Trig เพื่อส่งสัญญาณเสียง
+  delayMicroseconds(10); // รอเวลาสักครู่
+  digitalWrite(trigPin, LOW); // ยกเลิกการส่งสัญญาณเสียง
+
+  duration = pulseIn(echoPin, HIGH); // รับค่าเวลาที่ใช้ในการกลับมาของสัญญาณเสียง
+  distance = duration * 0.034 / 2; // คำนวณค่าระยะทางจากเวลาที่ได้
+
+  Serial.print("Distance: "); // แสดงผลลัพธ์บน Serial Monitor
+  Serial.print(distance);
+  Serial.println(" cm");
+}
